@@ -1,14 +1,5 @@
-using MediatR;
+using Ambev.DeveloperEvaluation.Application.Abstractions;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSale
-{
-    public class CancelSaleCommand : IRequest
-    {
-        public Guid SaleId { get; set; }
+namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSale;
 
-        public CancelSaleCommand(Guid saleId)
-        {
-            SaleId = saleId;
-        }
-    }
-}
+public sealed record CancelSaleCommand(Guid SaleId) : ICommand;

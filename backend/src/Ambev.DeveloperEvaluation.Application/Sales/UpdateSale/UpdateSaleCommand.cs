@@ -1,20 +1,13 @@
-using MediatR;
+using Ambev.DeveloperEvaluation.Application.Abstractions;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
-{
-    public class UpdateSaleCommand : IRequest
-    {
-        public Guid SaleId { get; set; }
-        public string SaleNumber { get; set; } = string.Empty;
-        public DateTime SaleDate { get; set; }
-        public List<UpdateSaleItemDto> Items { get; set; } = new();
-    }
+namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 
-    public class UpdateSaleItemDto
-    {
-        public Guid ProductId { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public decimal UnitPrice { get; set; }
-        public int Quantity { get; set; }
-    }
-}
+public sealed record UpdateSaleCommand(
+    Guid SaleId,
+    IReadOnlyList<UpdateSaleItemCommand> Items) : ICommand;
+
+public sealed record UpdateSaleItemCommand(
+    Guid ItemId,
+    int Quantity,
+    decimal UnitPrice,
+    string Currency);

@@ -1,41 +1,55 @@
-using AutoMapper;
-using FluentValidation;
+using Ambev.DeveloperEvaluation.Application.Abstractions;
+using Ambev.DeveloperEvaluation.Domain.Sales;
+using Ambev.DeveloperEvaluation.Domain.SharedKernel;
 using MediatR;
-using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Infrastructure.Messaging;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
+namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+
+internal sealed class CreateSaleHandler(
+    ISaleRepository saleRepository,
+    IUnitOfWork unitOfWork)
+    : IRequestHandler<CreateSaleCommand, Result<CreateSaleResult>>
 {
-    public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, Guid>
+    public async Task<Result<CreateSaleResult>> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
     {
-        private readonly ISaleRepository _saleRepository;
-        private readonly IMapper _mapper;
-        private readonly EventPublisher _eventPublisher;
+        var existing = await saleRepository.GetByNumberAsync(request.SaleNumber, cancellationToken);
+        if (existing is not null)
+            return Result.Failure<CreateSaleResult>(
+                Error.Conflict("Sale.DuplicateNumber", $"Sale number '{request.SaleNumber}' already exists."));
 
-        public CreateSaleHandler(ISaleRepository saleRepository, IMapper mapper, EventPublisher eventPublisher)
+        var saleResult = Sale.Create(
+            request.SaleNumber,
+            request.SaleDate,
+            request.CustomerId,
+            request.CustomerName,
+            request.BranchId,
+            request.BranchName,
+            request.Currency);
+
+        if (saleResult.IsFailure)
+            return Result.Failure<CreateSaleResult>(saleResult.Error);
+
+        var sale = saleResult.Value;
+
+        foreach (var item in request.Items)
         {
-            _saleRepository = saleRepository;
-            _mapper = mapper;
-            _eventPublisher = eventPublisher;
+            var addResult = sale.AddItem(
+                item.ProductId,
+                item.ProductName,
+                item.Quantity,
+                item.UnitPrice,
+                request.Currency);
+
+            if (addResult.IsFailure)
+                return Result.Failure<CreateSaleResult>(addResult.Error);
         }
 
-        public async Task<Guid> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
-        {
-            // Optionally validate with CreateSaleValidator using pipeline or code below.
+        saleRepository.Add(sale);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var sale = _mapper.Map<Sale>(request);
-
-            // Domain logic: calculate totals, validate discount logic
-            sale.CalculateSaleTotal();
-
-            // save
-            await _saleRepository.CreateAsync(sale, cancellationToken);
-
-            await _eventPublisher.PublishEvent(sale, "SaleCreated", cancellationToken);
-
-            // return Sale ID
-            return sale.Id;
-        }
+        return Result.Success(new CreateSaleResult(
+            sale.Id.Value,
+            sale.Number.Value,
+            sale.TotalAmount.Amount));
     }
 }

@@ -1,0 +1,26 @@
+services:
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=ambev_eval;Username=ambev;Password=dev_password"
+      ConnectionStrings__Redis: "redis:6379"
+      RabbitMq__Password: dev_password
+      POSTGRES_PASSWORD: dev_password
+      RABBITMQ_PASSWORD: dev_password
+      REDIS_PASSWORD: dev_password
+      Jwt__Issuer: ambev-dev
+      Jwt__Audience: ambev-dev
+      Jwt__SigningKey: dev-signing-key-at-least-32-characters-long!!
+    ports:
+      - "8080:8080"
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: dev_password
+
+  rabbitmq:
+    environment:
+      RABBITMQ_DEFAULT_PASS: dev_password
+
+  redis:
+    command: redis-server --requirepass dev_password

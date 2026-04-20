@@ -1,35 +1,25 @@
+using Ambev.DeveloperEvaluation.Application.Abstractions;
+using Ambev.DeveloperEvaluation.Domain.Sales;
+using Ambev.DeveloperEvaluation.Domain.SharedKernel;
 using MediatR;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Infrastructure.Messaging;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSale
+namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSale;
+
+internal sealed class CancelSaleHandler(
+    ISaleRepository saleRepository,
+    IUnitOfWork unitOfWork)
+    : IRequestHandler<CancelSaleCommand, Result>
 {
-    public class CancelSaleHandler : IRequestHandler<CancelSaleCommand>
+    public async Task<Result> Handle(CancelSaleCommand request, CancellationToken cancellationToken)
     {
-        private readonly ISaleRepository _saleRepository;
+        var sale = await saleRepository.GetByIdAsync(new SaleId(request.SaleId), cancellationToken);
+        if (sale is null)
+            return Result.Failure(Error.NotFound("Sale.NotFound", $"Sale '{request.SaleId}' not found."));
 
-        private readonly EventPublisher _eventPublisher;
+        var cancelResult = sale.Cancel();
+        if (cancelResult.IsFailure) return cancelResult;
 
-        public CancelSaleHandler(ISaleRepository saleRepository, EventPublisher eventPublisher)
-        {
-            _saleRepository = saleRepository;
-            _eventPublisher = eventPublisher;
-        }
-
-        public async Task Handle(CancelSaleCommand request, CancellationToken cancellationToken)
-        {
-            var sale = await _saleRepository.GetByIdAsync(request.SaleId, cancellationToken);
-            if (sale == null)
-                throw new KeyNotFoundException($"Sale with Id {request.SaleId} not found.");
-
-            if (sale.IsCancelled)
-               throw new DomainException("Sale already canceled.");
-
-            sale.Cancel();
-
-            await _eventPublisher.PublishEvent(sale, "SaleCancelled", cancellationToken);
-
-            await _saleRepository.UpdateAsync(sale, cancellationToken);
-        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 }

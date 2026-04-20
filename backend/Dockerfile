@@ -1,29 +1,25 @@
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER app
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["src/Ambev.DeveloperEvaluation.WebApi/Ambev.DeveloperEvaluation.WebApi.csproj", "src/Ambev.DeveloperEvaluation.WebApi/"]
-COPY ["src/Ambev.DeveloperEvaluation.Application/Ambev.DeveloperEvaluation.Application.csproj", "src/Ambev.DeveloperEvaluation.Application/"]
-COPY ["src/Ambev.DeveloperEvaluation.Common/Ambev.DeveloperEvaluation.Common.csproj", "src/Ambev.DeveloperEvaluation.Common/"]
+
+COPY ["Directory.Build.props", "./"]
+COPY ["Directory.Packages.props", "./"]
 COPY ["src/Ambev.DeveloperEvaluation.Domain/Ambev.DeveloperEvaluation.Domain.csproj", "src/Ambev.DeveloperEvaluation.Domain/"]
-COPY ["src/Ambev.DeveloperEvaluation.IoC/Ambev.DeveloperEvaluation.IoC.csproj", "src/Ambev.DeveloperEvaluation.IoC/"]
-COPY ["src/Ambev.DeveloperEvaluation.ORM/Ambev.DeveloperEvaluation.ORM.csproj", "src/Ambev.DeveloperEvaluation.ORM/"]
-RUN dotnet restore "./src/Ambev.DeveloperEvaluation.WebApi/Ambev.DeveloperEvaluation.WebApi.csproj"
-COPY . .
-WORKDIR "/src/src/Ambev.DeveloperEvaluation.WebApi"
-RUN dotnet build "./Ambev.DeveloperEvaluation.WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
+COPY ["src/Ambev.DeveloperEvaluation.Application/Ambev.DeveloperEvaluation.Application.csproj", "src/Ambev.DeveloperEvaluation.Application/"]
+COPY ["src/Ambev.DeveloperEvaluation.Infrastructure/Ambev.DeveloperEvaluation.Infrastructure.csproj", "src/Ambev.DeveloperEvaluation.Infrastructure/"]
+COPY ["src/Ambev.DeveloperEvaluation.Api/Ambev.DeveloperEvaluation.Api.csproj", "src/Ambev.DeveloperEvaluation.Api/"]
+RUN dotnet restore "src/Ambev.DeveloperEvaluation.Api/Ambev.DeveloperEvaluation.Api.csproj"
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Ambev.DeveloperEvaluation.WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+COPY src/ src/
+RUN dotnet publish "src/Ambev.DeveloperEvaluation.Api/Ambev.DeveloperEvaluation.Api.csproj" \
+    -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
-FROM base AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Ambev.DeveloperEvaluation.WebApi.dll"]
+COPY --from=build /app/publish .
+USER appuser
+EXPOSE 8080
+ENV ASPNETCORE_HTTP_PORTS=8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget -qO- http://localhost:8080/health/live || exit 1
+ENTRYPOINT ["dotnet", "Ambev.DeveloperEvaluation.Api.dll"]

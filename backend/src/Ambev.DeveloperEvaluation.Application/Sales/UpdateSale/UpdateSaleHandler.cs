@@ -1,61 +1,28 @@
-using AutoMapper;
-using FluentValidation;
+using Ambev.DeveloperEvaluation.Application.Abstractions;
+using Ambev.DeveloperEvaluation.Domain.Sales;
+using Ambev.DeveloperEvaluation.Domain.SharedKernel;
 using MediatR;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Infrastructure.Messaging;
-using System.Linq;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
+namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+
+internal sealed class UpdateSaleHandler(
+    ISaleRepository saleRepository,
+    IUnitOfWork unitOfWork)
+    : IRequestHandler<UpdateSaleCommand, Result>
 {
-    public class UpdateSaleHandler : IRequestHandler<UpdateSaleCommand>
+    public async Task<Result> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
     {
-        private readonly ISaleRepository _saleRepository;
-        private readonly IMapper _mapper;
-        private readonly EventPublisher _eventPublisher;
+        var sale = await saleRepository.GetByIdAsync(new SaleId(request.SaleId), cancellationToken);
+        if (sale is null)
+            return Result.Failure(Error.NotFound("Sale.NotFound", $"Sale '{request.SaleId}' not found."));
 
-        public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper, EventPublisher eventPublisher)
+        foreach (var item in request.Items)
         {
-            _saleRepository = saleRepository;
-            _mapper = mapper;
-            _eventPublisher = eventPublisher;
+            var updateResult = sale.UpdateItem(new SaleItemId(item.ItemId), item.Quantity, item.UnitPrice, item.Currency);
+            if (updateResult.IsFailure) return updateResult;
         }
 
-        public async Task Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
-        {
-            var sale = await _saleRepository.GetByIdAsync(request.SaleId, cancellationToken);
-            if (sale == null)
-                throw new KeyNotFoundException($"Sale with Id {request.SaleId} not found.");
-
-            if (sale.IsCancelled)
-                throw new DomainException("Cannot update a canceled sale.");
-
-            // Update basic info
-            sale.SaleNumber = request.SaleNumber;
-            sale.SaleDate = request.SaleDate;
-
-            var cancelledItems = sale.Items.Where(i => !request.Items.Any(ri => ri.ProductId == i.ProductId)).ToList();
-            
-            sale.Items.Clear();
-            foreach (var itemDto in request.Items)
-            {
-                sale.Items.Add(new SaleItem
-                {
-                    ProductId = itemDto.ProductId,
-                    ProductName = itemDto.ProductName,
-                    UnitPrice = itemDto.UnitPrice,
-                    Quantity = itemDto.Quantity
-                });
-            }
-
-            // Recalc
-            sale.CalculateSaleTotal();
-
-            await _saleRepository.UpdateAsync(sale, cancellationToken);
-
-            await _eventPublisher.PublishEvent(sale, "SaleUpdated", cancellationToken);
-            cancelledItems.ForEach(async i => await _eventPublisher.PublishEvent(i, "ItemCancelled", cancellationToken));
-
-        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 }

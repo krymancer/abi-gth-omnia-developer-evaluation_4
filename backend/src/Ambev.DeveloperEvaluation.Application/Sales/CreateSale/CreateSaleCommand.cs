@@ -1,29 +1,19 @@
-using MediatR;
+using Ambev.DeveloperEvaluation.Application.Abstractions;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
-{
-    /// <summary>
-    /// Command for creating a new sale.
-    /// </summary>
-    public class CreateSaleCommand : IRequest<Guid> // Return the new Sale ID
-    {
-        public string SaleNumber { get; set; } = string.Empty;
-        public DateTime SaleDate { get; set; }
+namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 
-        public Guid CustomerId { get; set; }
-        public string CustomerName { get; set; } = string.Empty;
+public sealed record CreateSaleCommand(
+    string SaleNumber,
+    DateTimeOffset SaleDate,
+    Guid CustomerId,
+    string CustomerName,
+    Guid BranchId,
+    string BranchName,
+    string Currency,
+    IReadOnlyList<CreateSaleItemCommand> Items) : ICommand<CreateSaleResult>;
 
-        public Guid BranchId { get; set; }
-        public string BranchName { get; set; } = string.Empty;
-
-        public List<CreateSaleItemDto> Items { get; set; } = new();
-    }
-
-    public class CreateSaleItemDto
-    {
-        public Guid ProductId { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public decimal UnitPrice { get; set; }
-        public int Quantity { get; set; }
-    }
-}
+public sealed record CreateSaleItemCommand(
+    string ProductId,
+    string ProductName,
+    int Quantity,
+    decimal UnitPrice);
