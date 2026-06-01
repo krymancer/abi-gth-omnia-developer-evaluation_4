@@ -12,18 +12,18 @@ namespace Ambev.DeveloperEvaluation.Api.IntegrationTests.Infrastructure;
 
 public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("ambev_integration")
         .WithUsername("test")
         .WithPassword("test_pass_123")
         .Build();
 
-    private readonly RabbitMqContainer _rabbit = new RabbitMqBuilder()
+    private readonly RabbitMqContainer _rabbit = new RabbitMqBuilder("rabbitmq:4-management-alpine")
         .WithUsername("guest")
         .WithPassword("guest")
         .Build();
 
-    private readonly RedisContainer _redis = new RedisBuilder().Build();
+    private readonly RedisContainer _redis = new RedisBuilder("redis:7-alpine").Build();
 
     public async Task InitializeAsync()
     {
