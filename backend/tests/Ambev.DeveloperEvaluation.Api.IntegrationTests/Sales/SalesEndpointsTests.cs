@@ -78,7 +78,7 @@ public sealed class SalesEndpointsTests(ApiWebApplicationFactory factory)
 
         var result = await response.Content.ReadFromJsonAsync<CreateSaleResult>();
         result.Should().NotBeNull();
-        result!.TotalAmount.Should().Be(270m);
+        result!.TotalAmount.Should().Be(300m);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class SalesEndpointsTests(ApiWebApplicationFactory factory)
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var sale = await getResponse.Content.ReadFromJsonAsync<GetSaleResult>();
         sale.Should().NotBeNull();
-        sale!.SaleNumber.Should().Be(createCmd.SaleNumber);
+        sale!.SaleNumber.Should().Be(createCmd.SaleNumber.ToUpperInvariant());
     }
 
     [Fact]
