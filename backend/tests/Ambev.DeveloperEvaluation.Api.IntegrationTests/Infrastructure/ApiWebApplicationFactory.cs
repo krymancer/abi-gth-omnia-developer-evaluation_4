@@ -64,8 +64,8 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
                 ["Jwt:Issuer"] = "integration-test",
                 ["Jwt:Audience"] = "integration-test",
                 ["Jwt:SigningKey"] = "integration-test-signing-key-must-be-32-chars+",
-                ["Jwt:ExpiryMinutes"] = "60",
-                ["Jwt:RefreshExpiryDays"] = "7",
+                ["Jwt:AccessTokenExpirationMinutes"] = "60",
+                ["Jwt:RefreshTokenExpirationDays"] = "7",
                 ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
                 ["OpenTelemetry:OtlpEndpoint"] = "http://localhost:4317",
             });
