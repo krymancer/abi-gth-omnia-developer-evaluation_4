@@ -35,6 +35,8 @@ internal sealed class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
             tb.Property(m => m.Currency).HasColumnName("total_price_currency").HasMaxLength(3).IsRequired();
         });
 
-        builder.Property<Guid>("sale_id").HasColumnName("sale_id");
+        builder.Property<SaleId>("sale_id")
+            .HasConversion(id => id.Value, value => new SaleId(value))
+            .HasColumnName("sale_id");
     }
 }
