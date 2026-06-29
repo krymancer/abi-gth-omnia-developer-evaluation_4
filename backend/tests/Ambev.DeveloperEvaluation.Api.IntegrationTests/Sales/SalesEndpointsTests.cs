@@ -21,19 +21,30 @@ public sealed class SalesEndpointsTests(ApiWebApplicationFactory factory)
         var email = $"test-{Guid.NewGuid():N}@example.com";
         var password = "Test@12345!";
 
-        await _client.PostAsJsonAsync("/api/v1/auth/register", new RegisterCommand(
+        var registerResponse = await _client.PostAsJsonAsync("/api/v1/auth/register", new RegisterCommand(
             Email: email,
             Password: password,
             FullName: "Test User",
             PhoneNumber: "+5511999999999",
             Role: UserRole.Customer));
+        await EnsureSuccessAsync(registerResponse, "register");
 
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login",
             new LoginCommand(email, password));
-        loginResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(loginResponse, "login");
 
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResult>();
         return loginResult!.AccessToken;
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, string operation)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Authentication {operation} failed with {(int)response.StatusCode} ({response.StatusCode}). Body: {body}");
     }
 
     private static CreateSaleCommand ValidCreateCommand(string? number = null) => new(
