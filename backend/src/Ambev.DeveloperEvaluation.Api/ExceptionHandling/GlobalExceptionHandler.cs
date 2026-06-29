@@ -2,10 +2,13 @@ using Ambev.DeveloperEvaluation.Domain.SharedKernel;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace Ambev.DeveloperEvaluation.Api.ExceptionHandling;
 
-internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+internal sealed class GlobalExceptionHandler(
+    ILogger<GlobalExceptionHandler> logger,
+    IHostEnvironment environment)
     : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
@@ -28,6 +31,7 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
                     Title = "Internal Server Error",
                     Status = StatusCodes.Status500InternalServerError,
                     Instance = httpContext.Request.Path,
+                    Detail = environment.IsEnvironment("Testing") ? exception.ToString() : null,
                 })
         };
 

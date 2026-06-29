@@ -64,6 +64,7 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
 
     private void ApplyEnvironmentOverrides()
     {
+        SetEnvironmentOverride("ASPNETCORE_ENVIRONMENT", "Testing");
         SetEnvironmentOverride("ConnectionStrings__DefaultConnection", _postgres.GetConnectionString());
         SetEnvironmentOverride("ConnectionStrings__Redis", _redis.GetConnectionString());
         SetEnvironmentOverride("RabbitMq__Host", _rabbit.Hostname);
