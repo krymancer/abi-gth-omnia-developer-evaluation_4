@@ -4,7 +4,6 @@ using Ambev.DeveloperEvaluation.Application.DependencyInjection;
 using Ambev.DeveloperEvaluation.Infrastructure.DependencyInjection;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -131,15 +130,6 @@ try
     app.MapHealthChecks("/health/ready");
 
     await app.RunAsync();
-}
-catch (HostAbortedException)
-{
-    throw;
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly.");
-    throw;
 }
 finally
 {
