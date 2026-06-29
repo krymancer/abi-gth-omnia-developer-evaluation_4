@@ -2,6 +2,8 @@ using Ambev.DeveloperEvaluation.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
@@ -37,7 +39,8 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
 
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureCreatedAsync();
+        var databaseCreator = db.GetService<IRelationalDatabaseCreator>();
+        await databaseCreator.CreateTablesAsync();
     }
 
     public new async Task DisposeAsync()
