@@ -7,12 +7,12 @@ internal sealed class SaleRepository(AppDbContext context) : ISaleRepository
 {
     public async Task<Sale?> GetByIdAsync(SaleId id, CancellationToken cancellationToken = default) =>
         await context.Sales
-            .Include("_items")
+            .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     public async Task<Sale?> GetByNumberAsync(string saleNumber, CancellationToken cancellationToken = default) =>
         await context.Sales
-            .Include("_items")
+            .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Number.Value == saleNumber, cancellationToken);
 
     public async Task<(IReadOnlyList<Sale> Items, int TotalCount)> ListAsync(
@@ -22,7 +22,7 @@ internal sealed class SaleRepository(AppDbContext context) : ISaleRepository
         bool sortDescending,
         CancellationToken cancellationToken = default)
     {
-        var query = context.Sales.Include("_items").AsQueryable();
+        var query = context.Sales.Include(s => s.Items).AsQueryable();
 
         query = (sortBy?.ToLowerInvariant(), sortDescending) switch
         {

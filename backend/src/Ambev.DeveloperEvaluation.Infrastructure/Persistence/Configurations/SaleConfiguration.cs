@@ -45,11 +45,11 @@ internal sealed class SaleConfiguration : IEntityTypeConfiguration<Sale>
             mb.Property(m => m.Currency).HasColumnName("currency").HasMaxLength(3).IsRequired();
         });
 
-        builder.HasMany<SaleItem>("_items")
+        builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("sale_id")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation("_items").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
